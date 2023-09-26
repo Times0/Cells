@@ -9,8 +9,8 @@ import cell
 
 from PygameUIKit import Group, button
 
-CELL_RADIUS = 10
-CELL_SPEED = 10
+CELL_RADIUS = 30
+CELL_SPEED = 5
 
 default_font = pygame.font.SysFont("None", 30)
 
@@ -66,7 +66,7 @@ class Simulation:
         self.check_cells_collisions2()
 
     def draw_all(self):
-        self.win.fill(Color("black"))
+        self.win.fill(Color((28, 28, 38)))
         pygame.draw.rect(self.win, Color("White"), self.experiment_rect, 1)
         for cell in self.cells:
             cell.draw(self.win)
