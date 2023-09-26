@@ -9,8 +9,8 @@ import cell
 
 from PygameUIKit import Group, button
 
-CELL_RADIUS = 30
-CELL_SPEED = 4
+CELL_RADIUS = 10
+CELL_SPEED = 10
 
 default_font = pygame.font.SysFont("None", 30)
 

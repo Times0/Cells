@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: PygameUIKit
+Version: 1.0
+Summary: Module to easily create UIs in pygame, buttons, text inputs, etc.
+Author: Times0
+Requires-Python: >=3.9
+
