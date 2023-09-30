@@ -8,27 +8,28 @@ from pygame import Color
 from constants import *
 
 
-def create_random_color():
-    """ Creates a random color that is not too close to dark"""
-    while True:
-        color = Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        if color.hsva[2] > 0.5:
-            return color
+def create_random_color(mass):
+    """ Creates a random color based on the mass of the cell """
+    gradient = 255 / 10
+    r = int(gradient * mass)
+    g = int(gradient * (10 - mass))
+    b = 0
+    return Color(r, g, b)
 
 
 class Cell(pygame.sprite.Sprite):
     def __init__(self, pos, speed, radius, experiment_rect):
         super().__init__()
-        self.color = create_random_color()
 
         self.pos = vec(pos)
         self.vel = vec(speed)
-        self.radius = radius
         self.experiment_rect = experiment_rect
+        self.mass = random.randint(1, 5)
+        self.color = create_random_color(self.mass)
+        self.radius = int(radius * self.mass / 2)
 
         self.rect = pygame.Rect(self.pos.x - self.radius, self.pos.y - self.radius, self.radius * 2,
                                 self.radius * 2).inflate(10, 10)
-        self.mass = 1
 
     def update(self):
         self.pos += self.vel
@@ -60,6 +61,16 @@ class Cell(pygame.sprite.Sprite):
     def get_right(self):
         return vec(self.pos.x + self.radius, self.pos.y)
 
+    def attraction(self, cells):
+        for c in cells:
+            if c != self:
+                d = distance(self, c)
+                if d < 500:
+                    m1 = self.mass * 100
+                    m2 = c.mass * 100
+                    self.vel += (c.pos - self.pos).normalize() * m2 / d ** 2
+                    c.vel += (self.pos - c.pos).normalize() * m1 / d ** 2
+
 
 def distance(a, b):
     return math.sqrt((a.pos.x - b.pos.x) ** 2 + (a.pos.y - b.pos.y) ** 2)
@@ -89,10 +100,11 @@ def get_response_velocities(particle, other_particle):
     m2 = other_particle.mass
     x1 = particle.pos
     x2 = other_particle.pos
+    f = 0.9
 
     particle_response_v = compute_velocity(v1, v2, m1, m2, x1, x2)
     other_particle_response_v = compute_velocity(v2, v1, m2, m1, x2, x1)
-    return particle_response_v, other_particle_response_v
+    return particle_response_v * f, other_particle_response_v * f
 
 
 def compute_velocity(v1, v2, m1, m2, x1, x2):

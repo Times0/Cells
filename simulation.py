@@ -61,8 +61,12 @@ class Simulation:
                 for _ in range(n)]
 
     def update_all(self, dt):
+
         for c in self.cells:
             c.update()
+            c.attraction(self.cells)
+
+
         self.check_cells_collisions2()
 
     def draw_all(self):
