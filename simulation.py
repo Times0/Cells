@@ -53,10 +53,9 @@ class Simulation:
                 self.game_is_on = False
 
     def create_cells(self, n):
-        return [cell.Cell((random.randint(self.experiment_rect.left, self.experiment_rect.right),
-                           random.randint(self.experiment_rect.top, self.experiment_rect.bottom)),
+        return [cell.Cell(pos=(random.randint(self.experiment_rect.left, self.experiment_rect.right),
+                               random.randint(self.experiment_rect.top, self.experiment_rect.bottom)),
                           speed=random_speed(CELL_SPEED),
-                          radius=CELL_RADIUS,
                           experiment_rect=self.experiment_rect)
                 for _ in range(n)]
 
@@ -65,7 +64,6 @@ class Simulation:
         for c in self.cells:
             c.update()
             c.attraction(self.cells)
-
 
         self.check_cells_collisions2()
 
