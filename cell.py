@@ -6,9 +6,7 @@ import pygame
 from pygame import Color
 
 from constants import *
-
-ATTRACTIVE_FORCE = 0.01
-FROTTEMENT = 0.9
+from config import config
 
 
 def create_random_color(radius):
@@ -27,15 +25,16 @@ class Cell(pygame.sprite.Sprite):
         self.pos = vec(pos)
         self.vel = vec(speed)
         self.experiment_rect = experiment_rect
-        self.radius = random.randint(20, 50) * 2
+        self.radius = random.randint(config.MIN_RADIUS, config.MAX_RADIUS)
         self.mass = self.radius ** 2
         self.color = create_random_color(self.radius)
 
         self.rect = pygame.Rect(self.pos.x - self.radius, self.pos.y - self.radius, self.radius * 2,
                                 self.radius * 2).inflate(10, 10)
 
-    def update(self):
+    def update(self, dt):
         self.pos += self.vel
+        self.vel *= config.FRICTION ** dt
         self.rect.center = self.pos
         self.check_collide_with_wall()
 
@@ -66,12 +65,13 @@ class Cell(pygame.sprite.Sprite):
 
     def attraction(self, cells):
         for c in cells:
-            if c != self:
-                d = distance(self, c)
-                if d < 1000:
-                    m1 = self.mass * ATTRACTIVE_FORCE
-                    m2 = c.mass * ATTRACTIVE_FORCE
-                    self.vel += (c.pos - self.pos).normalize() * m2 * m1 / d ** 2
+            if c == self:
+                continue
+            d = distance(self, c)
+            if d < 1000:
+                m1 = self.mass * config.ATTRACTION_FORCE / 1000
+                m2 = c.mass * config.ATTRACTION_FORCE / 1000
+                self.vel += (c.pos - self.pos).normalize() * m2 * m1 / d ** 2
 
 
 def distance(a, b):
@@ -105,7 +105,7 @@ def get_response_velocities(particle, other_particle):
 
     particle_response_v = compute_velocity(v1, v2, m1, m2, x1, x2)
     other_particle_response_v = compute_velocity(v2, v1, m2, m1, x2, x1)
-    return particle_response_v * FROTTEMENT, other_particle_response_v * FROTTEMENT
+    return particle_response_v, other_particle_response_v
 
 
 def compute_velocity(v1, v2, m1, m2, x1, x2):
