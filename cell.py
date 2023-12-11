@@ -73,6 +73,9 @@ class Cell(pygame.sprite.Sprite):
                 m2 = c.mass * config.ATTRACTION_FORCE / 1000
                 self.vel += (c.pos - self.pos).normalize() * m2 * m1 / d ** 2
 
+    def __repr__(self):
+        return f"Cell(pos={self.pos}, vel={self.vel}, radius={self.radius})"
+
 
 def distance(a, b):
     return math.sqrt((a.pos.x - b.pos.x) ** 2 + (a.pos.y - b.pos.y) ** 2)

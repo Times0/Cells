@@ -101,7 +101,6 @@ class Simulation:
             cell.draw(self.win)
 
         # ui
-
         nb_cell_label = default_font.render("Number of Cells", True, (255, 255, 255))
         self.win.blit(nb_cell_label, (10, 370))
         self.nb_cell_slider.draw(self.win, 10, 400, 200, 5)
@@ -170,22 +169,80 @@ class Simulation:
     def kdtree(self):
         tree = KDTree(self.cells)
         for a in self.cells:
-            for b in tree.query(a):
-                if 0 < cell.distance(a, b) < a.radius + b.radius:
-                    v1, v2 = cell.get_response_velocities(a, b)
-                    a.vel = v1
-                    b.vel = v2
-
-                    direction = (a.pos - b.pos).normalize()
-                    a.pos = b.pos + direction * (a.radius + b.radius)
-                    b.pos = a.pos - direction * (a.radius + b.radius)
+            b = tree.get_nearest(a)
+            if 0 < cell.distance(a, b) < a.radius + b.radius:
+                v1, v2 = cell.get_response_velocities(a, b)
+                a.vel = v1
+                b.vel = v2
+                direction = (a.pos - b.pos).normalize()
+                a.pos = b.pos + direction * (a.radius + b.radius)
+                b.pos = a.pos - direction * (a.radius + b.radius)
 
 
 class KDTree:
     """https://fr.wikipedia.org/wiki/Arbre_kd"""
-    pass
+
+    def __init__(self, points, depth=0):
+        self.axis = depth % 2
+        self.points = list(points)
+        self.left = None
+        self.right = None
+        self.split = None
+
+        self.build()
+
+    def build(self):
+        if len(self.points) == 0:
+            return
+        self.points.sort(key=lambda x: x.pos[self.axis])
+        median = len(self.points) // 2
+        self.split = self.points[median]
+        self.left = KDTree(self.points[:median], self.axis + 1)
+        self.right = KDTree(self.points[median + 1:], self.axis + 1)
+
+    def query(self, point):
+        """returns the list of points that are in the same cell as the given point"""
+        if self.split is None:
+            return []
+        if point.pos[self.axis] < self.split.pos[self.axis]:
+            return self.left.query(point)
+        else:
+            return self.right.query(point)
+
+    def get_nearest(self, point):
+        """returns the nearest point to the given point. The answer is not the point itself."""
+        if self.split is None:
+            return None
+        if point.pos[self.axis] < self.split.pos[self.axis]:
+            nearest = self.left.get_nearest(point)
+        else:
+            nearest = self.right.get_nearest(point)
+
+        if nearest is None:
+            return self.split
+
+        d = cell.distance(point, nearest)
+        if d == 0:
+            return self.split
+
+        if d < cell.distance(point, self.split):
+            return nearest
+        else:
+            return self.split
+
 
 def random_speed(norm):
     """calculates the x and y coordinates of a x,y vel in a random direction"""
     theta = random.randint(1, 360)
     return np.cos(theta) * norm, np.sin(theta) * norm
+
+
+def draw_kdtree(tree, win):
+    """draws kdtree grid"""
+    if tree is None or tree.split is None:
+        return
+
+    for line in tree.lines_to_draw:
+        pygame.draw.line(win, Color("white"), line[0], line[1], 1)
+    draw_kdtree(tree.left, win)
+    draw_kdtree(tree.right, win)
