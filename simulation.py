@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pygame.sprite
 from PygameUIKit.button import TextAlignment
-from PygameUIKit.dropdown import ComboBox
+from PygameUIKit.combobox import ComboBox
 from pygame import Color
 
 from constants import *
@@ -14,7 +14,9 @@ from PygameUIKit import Group, button, slider
 
 CELL_START_SPEED = 5
 
-default_font = pygame.font.SysFont("None", 30)
+default_font = pygame.font.SysFont(None, 30)
+
+UI = True
 
 
 class Simulation:
@@ -24,17 +26,18 @@ class Simulation:
         self.experiment_rect = self.win.get_rect().inflate(-300, -100).move(100, 0)
         self.dt = 0
         self.cells = pygame.sprite.Group()
+        self.set_cells_to_nb(config.NB_CELLS)
 
         # Ui
         self.ui_group = Group()
-        self.algo = ComboBox(["Naive O(n²)", "Sort and sweep", "Quadtree"], ui_group=self.ui_group)
+        self.algo = ComboBox(["Naive O(n²)", "Sort and sweep", "KD-Tree"], ui_group=self.ui_group)
         self.algo.add_action(0, lambda: setattr(self, "check_collisions", self.naive))
         self.algo.add_action(1, lambda: setattr(self, "check_collisions", self.sweepandprune))
         self.algo.add_action(2, lambda: setattr(self, "check_collisions", self.kdtree))
 
         self.nb_cell_slider = slider.Slider(0, 1000, 1, show_value=True, ui_group=self.ui_group,
                                             font_color=Color("white"))
-        self.nb_cell_slider.current_value = 0
+        self.nb_cell_slider.current_value = config.NB_CELLS
         self.nb_cell_slider.connect(lambda: self.set_cells_to_nb(self.nb_cell_slider.current_value))
         self.attraction_slider = slider.Slider(0, 100, 1, show_value=True, ui_group=self.ui_group,
                                                font_color=Color("white"))
@@ -59,7 +62,7 @@ class Simulation:
         self.btn_clear = button.ButtonText("Clear", self.clear_experiment, Color(91, 44, 44), border_radius=5,
                                            ui_group=self.ui_group, fixed_width=200, text_align=TextAlignment.CENTER)
 
-        self.check_collisions = self.sweepandprune
+        self.check_collisions = self.naive
 
         self.fps = 0
 
@@ -101,35 +104,40 @@ class Simulation:
             cell.draw(self.win)
 
         # ui
-        nb_cell_label = default_font.render("Number of Cells", True, (255, 255, 255))
-        self.win.blit(nb_cell_label, (10, 370))
-        self.nb_cell_slider.draw(self.win, 10, 400, 200, 5)
-
-        force_label = default_font.render("Attraction Strength", True, (255, 255, 255))
-        self.win.blit(force_label, (10, 470))
-        self.attraction_slider.draw(self.win, 10, 500, 200, 5)
-
-        friction_label = default_font.render("Friction", True, (255, 255, 255))
-        self.win.blit(friction_label, (10, 570))
-        self.friction_slider.draw(self.win, 10, 600, 200, 5)
-
-        min_radius_label = default_font.render("Min Radius", True, (255, 255, 255))
-        self.win.blit(min_radius_label, (10, 670))
-        self.min_radius_slider.draw(self.win, 10, 700, 200, 5)
-
-        max_radius_label = default_font.render("Max Radius", True, (255, 255, 255))
-        self.win.blit(max_radius_label, (10, 770))
-        self.max_radius_slider.draw(self.win, 10, 800, 200, 5)
-
-        self.btn_clear.draw(self.win, 10, HEIGHT // 2 - self.btn_clear.rect.height // 2 + 500)
-        self.algo.draw(self.win, 10, 300)
+        if UI:
+            self.draw_ui(self.win)
 
         # fps
         text = default_font.render(f"FPS: {self.fps:.2f}", True, Color("red"))
         self.win.blit(text, text.get_rect(bottomright=self.win.get_rect().bottomright).move(-10, -10))
         pygame.display.flip()
 
+    def draw_ui(self, win):
+        nb_cell_label = default_font.render("Number of Cells", True, (255, 255, 255))
+        win.blit(nb_cell_label, (10, 370))
+        self.nb_cell_slider.draw(win, 10, 400, 200, 5)
+
+        force_label = default_font.render("Attraction Strength", True, (255, 255, 255))
+        win.blit(force_label, (10, 470))
+        self.attraction_slider.draw(win, 10, 500, 200, 5)
+
+        friction_label = default_font.render("Friction", True, (255, 255, 255))
+        win.blit(friction_label, (10, 570))
+        self.friction_slider.draw(win, 10, 600, 200, 5)
+
+        min_radius_label = default_font.render("Min Radius", True, (255, 255, 255))
+        win.blit(min_radius_label, (10, 670))
+        self.min_radius_slider.draw(win, 10, 700, 200, 5)
+
+        max_radius_label = default_font.render("Max Radius", True, (255, 255, 255))
+        win.blit(max_radius_label, (10, 770))
+        self.max_radius_slider.draw(win, 10, 800, 200, 5)
+
+        self.btn_clear.draw(win, 10, HEIGHT // 2 - self.btn_clear.rect.height // 2 + 500)
+        self.algo.draw(win, 10, 300)
+
     def set_cells_to_nb(self, n):
+        config.NB_CELLS = n
         if n < len(self.cells):
             self.cells.remove(self.cells.sprites()[:len(self.cells) - n])
         elif n > len(self.cells):
@@ -235,14 +243,3 @@ def random_speed(norm):
     """calculates the x and y coordinates of a x,y vel in a random direction"""
     theta = random.randint(1, 360)
     return np.cos(theta) * norm, np.sin(theta) * norm
-
-
-def draw_kdtree(tree, win):
-    """draws kdtree grid"""
-    if tree is None or tree.split is None:
-        return
-
-    for line in tree.lines_to_draw:
-        pygame.draw.line(win, Color("white"), line[0], line[1], 1)
-    draw_kdtree(tree.left, win)
-    draw_kdtree(tree.right, win)
