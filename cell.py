@@ -34,28 +34,35 @@ class Cell(pygame.sprite.Sprite):
 
     def update(self, dt):
         self.pos += self.vel
-        self.vel *= config.FRICTION ** dt
         self.rect.center = self.pos
-        self.check_collide_with_wall()
+        self.apply_movement()
 
     def draw(self, win):
         pygame.draw.circle(win, self.color, (self.pos.x, self.pos.y), self.radius)
-        # pygame.draw.rect(win, Color("white"), self.rect, 1)
 
-    def check_collide_with_wall(self):
+    def apply_movement(self):
         if self.pos.x - self.radius < self.experiment_rect.left:
             self.pos.x = self.experiment_rect.left + self.radius
-            self.vel.x *= -1
+            self.vel.x = abs(self.vel.x)
         elif self.pos.x + self.radius > self.experiment_rect.right:
             self.pos.x = self.experiment_rect.right - self.radius
-            self.vel.x *= -1
+            self.vel.x = -abs(self.vel.x)
 
         if self.pos.y - self.radius < self.experiment_rect.top:
             self.pos.y = self.experiment_rect.top + self.radius
-            self.vel.y *= -1
+            self.vel.y = abs(self.vel.y)
         elif self.pos.y + self.radius > self.experiment_rect.bottom:
             self.pos.y = self.experiment_rect.bottom - self.radius
-            self.vel.y *= -1
+            self.vel.y = -abs(self.vel.y)
+
+        # friction
+        if self.vel.length() == 0:
+            return
+        friction_force = self.vel.normalize() * config.FRICTION
+        if friction_force.length() > self.vel.length():
+            self.vel = vec(0, 0)
+        else:
+            self.vel -= friction_force
 
     def get_left(self):
         return vec(self.pos.x - self.radius, self.pos.y)
@@ -63,7 +70,7 @@ class Cell(pygame.sprite.Sprite):
     def get_right(self):
         return vec(self.pos.x + self.radius, self.pos.y)
 
-    def attraction(self, cells):
+    def apply_attraction(self, cells):
         for c in cells:
             if c == self:
                 continue
@@ -72,6 +79,9 @@ class Cell(pygame.sprite.Sprite):
                 m1 = self.mass * config.ATTRACTION_FORCE / 1000
                 m2 = c.mass * config.ATTRACTION_FORCE / 1000
                 self.vel += (c.pos - self.pos).normalize() * m2 * m1 / d ** 2
+
+    def apply_gravity(self, gravity):
+        self.vel += vec(0, gravity)
 
     def __repr__(self):
         return f"Cell(pos={self.pos}, vel={self.vel}, radius={self.radius})"

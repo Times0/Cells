@@ -8,6 +8,6 @@ ctypes.windll.user32.SetProcessDPIAware()
 if __name__ == "__main__":
     pygame.init()
     pygame.display.set_caption("Cell simulation")
-    win = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN| pygame.HWSURFACE| pygame.DOUBLEBUF)
+    win = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
     game = Simulation(win)
     game.run()

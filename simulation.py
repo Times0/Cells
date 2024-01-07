@@ -27,6 +27,7 @@ class Simulation:
         self.dt = 0
         self.cells = pygame.sprite.Group()
         self.set_cells_to_nb(config.NB_CELLS)
+        self.moving_cell = None
 
         # Ui
         self.ui_group = Group()
@@ -59,6 +60,11 @@ class Simulation:
         self.max_radius_slider.current_value = config.MAX_RADIUS
         self.max_radius_slider.connect(lambda: setattr(config, "MAX_RADIUS", self.max_radius_slider.current_value))
 
+        self.gravity_slider = slider.Slider(0, 5, 0.1, show_value=True, ui_group=self.ui_group,
+                                            font_color=Color("white"))
+        self.gravity_slider.current_value = config.GRAVITY
+        self.gravity_slider.connect(lambda: setattr(config, "GRAVITY", self.gravity_slider.current_value))
+
         self.btn_clear = button.ButtonText("Clear", self.clear_experiment, Color(91, 44, 44), border_radius=5,
                                            ui_group=self.ui_group, fixed_width=200, text_align=TextAlignment.CENTER)
 
@@ -81,6 +87,22 @@ class Simulation:
             self.ui_group.handle_event(event)
             if event.type == pygame.QUIT:
                 self.game_is_on = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                ce = None
+                for c in self.cells:
+                    if c.rect.collidepoint(event.pos):
+                        ce = c
+                        break
+                if ce is not None:
+                    self.moving_cell = ce
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if self.moving_cell is not None:
+                    self.moving_cell.vel = vec(0, 0)
+                    self.moving_cell = None
+            elif event.type == pygame.MOUSEMOTION:
+                if self.moving_cell is not None:
+                    self.moving_cell.pos = vec(event.pos)
+                    self.moving_cell.rect.center = self.moving_cell.pos
 
     def create_cells(self, n):
         return [cell.Cell(pos=(random.randint(self.experiment_rect.left, self.experiment_rect.right),
@@ -90,12 +112,16 @@ class Simulation:
                 for _ in range(n)]
 
     def update_all(self, dt):
+        self.check_collisions()
+
         for c in self.cells:
+            if c == self.moving_cell:
+                continue
             c.update(dt)
             if config.ATTRACTION_FORCE > 0:
-                c.attraction(self.cells)
-
-        self.check_collisions()
+                c.apply_attraction(self.cells)
+            if config.GRAVITY > 0:
+                c.apply_gravity(config.GRAVITY)
 
     def draw_all(self):
         self.win.fill(Color((28, 28, 38)))
@@ -132,6 +158,10 @@ class Simulation:
         max_radius_label = default_font.render("Max Radius", True, (255, 255, 255))
         win.blit(max_radius_label, (10, 770))
         self.max_radius_slider.draw(win, 10, 800, 200, 5)
+
+        gravity_label = default_font.render("Gravity", True, (255, 255, 255))
+        win.blit(gravity_label, (10, 870))
+        self.gravity_slider.draw(win, 10, 900, 200, 5)
 
         self.btn_clear.draw(win, 10, HEIGHT // 2 - self.btn_clear.rect.height // 2 + 500)
         self.algo.draw(win, 10, 300)
@@ -171,8 +201,13 @@ class Simulation:
                 b.vel = v2
 
                 direction = (a.pos - b.pos).normalize()
-                a.pos = b.pos + direction * (a.radius + b.radius)
-                b.pos = a.pos - direction * (a.radius + b.radius)
+                new_a = b.pos + direction * (a.radius + b.radius)
+                new_b = a.pos - direction * (a.radius + b.radius)
+
+                if self.experiment_rect.collidepoint(new_a):
+                    a.pos = new_a
+                if self.experiment_rect.collidepoint(new_b):
+                    b.pos = new_b
 
     def kdtree(self):
         tree = KDTree(self.cells)
