@@ -1,7 +1,6 @@
 # Visualisation of cells moving in a confined 2D space
 
-![img.png](images/img.png)
-[demoCells.webm](https://github.com/Times0/Cells/assets/45049767/ab33c686-8397-497b-b496-4433bce159d5)
+[demoCells.webm](https://github.com/Times0/Cells/assets/45049767/798bf376-d30d-4422-a67d-def24f0ebf2e)
 
 ## Description
 
